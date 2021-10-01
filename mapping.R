@@ -96,14 +96,14 @@ fit_GAM <- mgcv::gam( # using {mgcv}
 #   output = "points"
 # ) %>% bind_cols()
 
-# Automated Kriging
-fit_KRIG <- automap::autoKrige(      # using {automap}
-  formula = Yield ~ 1,                 # The interface is similar to {gstat} but
-  input_data = as(dat_sf_utm, "Spatial") # {automap} makes a lot of assumptions for you
-) %>% 
-  .$krige_output %>%  # the function returns a complex object with lot's of metainfo
-  as.data.frame() %>% # we keep only the data we are interested in
-  dplyr::select(X = x1, Y = x2, Z = var1.pred) 
+# Automated Kriging # error with CRS...
+# fit_KRIG <- automap::autoKrige(      # using {automap}
+#   formula = Yield ~ 1,                 # The interface is similar to {gstat} but
+#   input_data = as(dat_sf_utm, "Spatial") # {automap} makes a lot of assumptions for you
+# ) %>% 
+#   .$krige_output %>%  # the function returns a complex object with lot's of metainfo
+#   as.data.frame() %>% # we keep only the data we are interested in
+#   dplyr::select(X = x1, Y = x2, Z = var1.pred) 
 
 ########################################################################
 ### Interpolate and Plot
@@ -115,14 +115,14 @@ interp_NN <- interpolate(grd_template_raster, fit_NN)
 interp_IDW <- interpolate(grd_template_raster, fit_IDW)
 
 # Thin Plate Spline Regression
-interp_TPS <- interpolate(grd_template_raster, fit_TPS)
+#interp_TPS <- interpolate(grd_template_raster, fit_TPS)
 
 # TIN Interpolation
-interp_TIN <- raster::rasterFromXYZ(fit_TIN, crs = crs_raster_format)
+#interp_TIN <- raster::rasterFromXYZ(fit_TIN, crs = crs_raster_format)
 
 # Krigging Interpolation
-interp_KRIG <- raster::rasterFromXYZ(fit_KRIG, crs = crs_raster_format)
-plot(interp_KRIG)
+#interp_KRIG <- raster::rasterFromXYZ(fit_KRIG, crs = crs_raster_format)
+#plot(interp_KRIG)
 
 ########################################################################
 ### Generalized Additive Model
