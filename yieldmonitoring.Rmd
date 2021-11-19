@@ -7,10 +7,12 @@ output:
 
 This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook, which you can read about on [bookdown](https://bookdown.org/yihui/rmarkdown/notebook.html). When you execute code within the notebook, the results appear beneath the code. Alternatively, this can be rendered in an html (or other) document for sharing.
 
-# Libraries
+# Libraries for analysis
 
-```{r, echo=FALSE}
-rm(list=ls()) # clear env
+This sets up the environment with packages of functions and removes any variables prior to starting the script.
+
+```{r}
+rm(list=ls()) # clear env vars
 
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(
@@ -20,7 +22,8 @@ pacman::p_load(
   raster, 
   viridis, cowplot, ggplot2, ggrepel, RColorBrewer,
   ggspatial,rnaturalearth, rnaturalearthdata,
-  gstat, fields, interp, mgcv, automap, patchwork, ggmap
+  gstat, fields, interp, mgcv, automap, patchwork, ggmap,
+  concaveman
 )
 
 #install.packages("devtools") #uncomment the first time running
@@ -28,7 +31,10 @@ pacman::p_load(
 library(cleanRfield)
 ```
 
-# Get the data and grab spatial
+# Get the raw data and convert to spatial objects
+
+Here, we read in the csv file hosted in a Google Drive folder. Then, we use the lat, lon to make it a simple feature spatial object with a geometry attributes. Because the data are originally in WGS84 geographic coordinate system, we transform the data into a UTM projected system. This ensures measurements are in meters rather than decimal degrees. We then plot the raw data yields for a rough visualization.
+
 ```{r}
 library(Rcpp)
 id <- "1Xy838-GIKSau5VLFsT99gxgP98vvDGOA" # Google file ID
@@ -38,17 +44,119 @@ dat <- read.csv(con) # read in the csv via the connection
 dat_sf <- st_as_sf(dat, coords = c("x", "y"), crs = 4326, agr = "constant")
 dat_utm <- st_transform(dat_sf, crs = 32614)
 utm_crs <- crs(dat_utm)
-pt_gg <- ggplot() + 
+
+ggplot() + 
   geom_sf(data = dat_utm, aes(color = Yield)) +
-  scale_color_viridis_c(option="magma", direction = -1)
-pt_gg
+  scale_color_viridis_c(option="viridis", direction = -1) +
+  ggtitle("Raw Yields") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+ggplot() + 
+  geom_sf(data = dat_utm, aes(color = Relative_Elevation1)) +
+  scale_color_viridis_c(option="magma", direction = -1) +
+  ggtitle("Relative Elevation") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+ggplot() + 
+  geom_sf(data = dat_utm, aes(color = Slope1)) +
+  scale_color_viridis_c(option="magma", direction = -1) +
+  ggtitle("Slope") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+ggplot() + 
+  geom_sf(data = dat_utm, aes(color = TRI1)) +
+  scale_color_viridis_c(option="magma", direction = -1) +
+  ggtitle("Topographical Ruggedness Index (TRI)") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+ggplot() + 
+  geom_sf(data = dat_utm, aes(color = SeedingDensity)) +
+  scale_color_viridis_c(option="rocket", direction = -1) +
+  ggtitle("Seeding Density") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+ggplot() + 
+  geom_sf(data = dat_utm, aes(color = clay_mean_30_60)) +
+  scale_color_viridis_c(option="cividis", direction = -1) +
+  ggtitle("Clay Soils") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
-# Create maps with cleanRfield for yield monitor data
+
+# Cleaning up the yield monitor data with spatial functions
+
+First we get the boundary of the field containing all points. Then we create a buffer of 20 meters inside the field to remove edge-of-field measurement issues.
+
+```{r}
+# Get bounding polygon containing all points
+bounds <- concaveman(dat_utm, concavity = 2)
+
+# Create buffer of field edges
+buffer <- st_buffer(bounds, dist = -40)
+
+ggplot() +
+  geom_sf(data=bounds, fill="white", color="black")+
+  geom_sf(data=buffer, fill="dark grey", color="black")
+```
+
+# Clip the yield observations outside the buffer 
+
+```{r}
+dat_utm_c <- st_intersection(buffer, dat_utm)
+
+ggplot() + 
+  geom_sf(data = bounds, fill="black", color="black") +
+  geom_sf(data=dat_utm_c, aes(color=Yield))+
+  scale_color_viridis_c(option="viridis", direction = -1) +
+  ggtitle("Raw Yields") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+# Remove outliers from yield observations and generate random samples of data
+
+I drop 2.5 standard deviations above and below the yield mean, but I may consider from the median or other options for outliers. I also explore grabbing a random sample (60%) of data points, which will improve processing time for the full batch. I'll ultimately wrap all of this into a function (minus plots) to loop through all the datasets. One issue is the dark strip of high yields in the center of the field, which is like an artifact from the machinery/yield monitor. If we need to address these features, it will likely involve conversion to a raster (image) and smoothing based on a neighborhood/kernel. That will still leave high values, but it would be weighted against neighboring rows. This primary issue is that it's very computationally expensive - not terrible for a single field, but likely not worth it for all fields given our objectives. Still, I'm open to other ideas here. I hope this gives you a sense of how the data vary spatially and some of the intricacies of making it tractable for further analysis.
+
+```{r}
+hist(dat_utm_c$Yield, breaks=20)
+summary(dat_utm_c[,1:15])
+sd.y <- sd(dat_utm_c$Yield)*2.5
+m.y <- mean(dat_utm_c$Yield)
+out.up <- m.y+sd.y
+out.down <- m.y-sd.y
+dat_clean <- dat_utm_c[dat_utm_c$Yield > out.down & 
+                         dat_utm_c$Yield < out.up,]
+ggplot() + 
+  geom_sf(data = bounds, fill="white", color="black") +
+  geom_sf(data=dat_clean, aes(color=Yield))+
+  scale_color_viridis_c(option="viridis", direction = -1) +
+  ggtitle("Yields with Outliers Removed") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+dat_clean_s <- dat_clean %>% sample_frac(0.60)
+hist(dat_clean_s$Yield, breaks=20)
+ggplot() + 
+  geom_sf(data = bounds, fill="white", color="black") +
+  geom_sf(data=dat_clean_s, aes(color=Yield))+
+  scale_color_viridis_c(option="viridis", direction = -1) +
+  ggtitle("Yields with Outliers Removed") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+```{r}
+knitr::knit_exit()
+```
+# cleanRfields exploration
+
+This is an R package I used to explore and map the data initially. First, we convert from sf to a spatial points object (required for some functions).
 
 ```{r}
 # cleanRfield exploration
+
 dat_sp <- as(dat_utm, "Spatial")
+
+bounds <- boundaryField(field = ras$Yield)
+bounds
+buffer <- bufferField(shape=bounds, value = -20)
+buffer
 
 # get random sample of field points
 samp <- sampleField(field = dat_sp, size = 0.05)
@@ -69,13 +177,6 @@ plot(ras$SeedingDensity,col = brewer.pal(11, "RdYlGn"))
 par(mfrow=c(1,1))
 ```
 # Check out the field boundaries, create a buffer, and histograms
-```{r echo=F
-}
-bounds <- boundaryField(field = ras$Yield)
-bounds
-buffer <- bufferField(shape=bounds, value = -20)
-buffer
-```
 
 ```{r}
 par(mfrow=c(1,2))
