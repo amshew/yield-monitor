@@ -1,0 +1,125 @@
+---
+title: "Yield Monitoring Exploration"
+output:
+  html_document:
+    df_print: paged
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook, which you can read about on [bookdown](https://bookdown.org/yihui/rmarkdown/notebook.html). When you execute code within the notebook, the results appear beneath the code. Alternatively, this can be rendered in an html (or other) document for sharing.
+
+# Libraries
+
+```{r, echo=FALSE}
+rm(list=ls()) # clear env
+
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(
+  tidyverse,
+  curl,
+  sf,
+  raster, 
+  viridis, cowplot, ggplot2, ggrepel, RColorBrewer,
+  ggspatial,rnaturalearth, rnaturalearthdata,
+  gstat, fields, interp, mgcv, automap, patchwork, ggmap
+)
+
+#install.packages("devtools") #uncomment the first time running
+#devtools::install_github("filipematias23/cleanRfield") #uncomment the first time running
+library(cleanRfield)
+```
+
+# Get the data and grab spatial
+```{r}
+library(Rcpp)
+id <- "1Xy838-GIKSau5VLFsT99gxgP98vvDGOA" # Google file ID
+sURL <- sprintf("https://docs.google.com/uc?id=%s&export=download", id) # google drive export/download link
+con <- curl(sURL) # open the drive connection to R
+dat <- read.csv(con) # read in the csv via the connection
+dat_sf <- st_as_sf(dat, coords = c("x", "y"), crs = 4326, agr = "constant")
+dat_utm <- st_transform(dat_sf, crs = 32614)
+utm_crs <- crs(dat_utm)
+pt_gg <- ggplot() + 
+  geom_sf(data = dat_utm, aes(color = Yield)) +
+  scale_color_viridis_c(option="magma", direction = -1)
+pt_gg
+```
+
+# Create maps with cleanRfield for yield monitor data
+
+```{r}
+# cleanRfield exploration
+dat_sp <- as(dat_utm, "Spatial")
+
+# get random sample of field points
+samp <- sampleField(field = dat_sp, size = 0.05)
+
+# make raster
+ras <- rasterField(field = dat_sp, 
+                       trait = c("Yield", "Relative_Elevation1", "TRI","TPI1", "SeedingDensity",
+                                 "clay_mean_30_60", "Red_Edge_1week16","Red_Edge_1week19",
+                                 "Red_Edge_1week22", "Application_2_rate","Application_4_rate",
+                                 "Application_6_rate", "Application_7_rate"), 
+                       res=20)
+
+par(mfrow=c(2,3))
+plot(ras$Yield)
+plot(ras$Yield,col = brewer.pal(9, "BuGn"))
+plot(ras$TPI1,col = topo.colors(10))
+plot(ras$SeedingDensity,col = brewer.pal(11, "RdYlGn"))
+par(mfrow=c(1,1))
+```
+# Check out the field boundaries, create a buffer, and histograms
+```{r echo=F
+}
+bounds <- boundaryField(field = ras$Yield)
+bounds
+buffer <- bufferField(shape=bounds, value = -20)
+buffer
+```
+
+```{r}
+par(mfrow=c(1,2))
+hist(dat_utm$Yield, breaks=20)
+hist(dat_utm$SeedingDensity, breaks=100)
+par(mfrow=c(1,1))
+```
+
+# Get a bounding box and create a raster layer
+```{r}
+# Generate 10m raster for interpolations
+bbox <- st_bbox(dat_utm)
+grd.temp <- expand.grid(
+  X = seq(from = bbox["xmin"], to = bbox["xmax"], by = 20),
+  Y = seq(from = bbox["ymin"], to = bbox["ymax"], by = 20) # 20 m resolution
+)
+
+# Take a look at the gridded points for interpolation
+grid_plot <- ggplot() +
+  geom_point(data = grd.temp, aes(x = X, y = Y), size = 0.01) +
+  geom_sf(data = dat_utm, aes(color = Yield), size = 2) +
+  scale_color_viridis_c(option="magma")+
+  theme_bw()
+grid_plot
+
+# Set the raster CRS
+crs_raster_format <- utm_crs
+grd_template_raster <- grd.temp %>% 
+  dplyr::mutate(Z = 0) %>% 
+  raster::rasterFromXYZ( 
+    crs = crs_raster_format)
+#plot(grd_template_raster)
+```
+
+# Filter field by standard deviations of yield (2.5 here)
+```{r}
+dat_b <- sdField(dat_sp,
+                 #shape = buffer$buffer,
+                 trait = c("Yield"),
+                 value = c(2.5))
+dat_b
+```
+
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+

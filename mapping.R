@@ -6,10 +6,14 @@ pacman::p_load(
   curl,
   sf,
   raster, 
-  viridis, cowplot, ggplot2, ggrepel, 
+  viridis, cowplot, ggplot2, ggrepel, RColorBrewer,
   ggspatial,rnaturalearth, rnaturalearthdata,
   gstat, fields, interp, mgcv, automap, patchwork, ggmap
 )
+
+install.packages("devtools")
+devtools::install_github("filipematias23/cleanRfield")
+library(cleanRfield)
 
 ### Get Data
 id <- "1Xy838-GIKSau5VLFsT99gxgP98vvDGOA" # Google file ID
@@ -20,12 +24,13 @@ dat <- read.csv(con) # read in the csv via the connection
 ###############################################################################
 ### Convert to sf and utm
 dat_sf <- st_as_sf(dat, coords = c("x", "y"), crs = 4326, agr = "constant")
-dat_sf_utm <- st_transform(dat_sf, crs = 32614)
-utm_crs <- crs(dat_sf_utm)
-utm_coords <- do.call(rbind, st_geometry(dat_sf_utm)) %>% 
-  as_tibble() %>% setNames(c("x_u","y_u"))
-dat$x_u <- utm_coords$x_u
-dat$y_u <- utm_coords$y_u
+dat_utm <- st_transform(dat_sf, crs = 32614)
+
+# utm_crs <- crs(dat_sf_utm)
+# utm_coords <- do.call(rbind, st_geometry(dat_sf_utm)) %>% 
+#   as_tibble() %>% setNames(c("x_u","y_u"))
+# dat$x_u <- utm_coords$x_u
+# dat$y_u <- utm_coords$y_u
 
 # Initial plot of raw yields in WGS84
 pt_gg <- ggplot() + 
@@ -33,8 +38,38 @@ pt_gg <- ggplot() +
   scale_color_viridis_c(option="magma")
 pt_gg
 
+# cleanRfield exploration
+dat_sp <- as(dat_sf_utm, "Spatial")
+
+# get random sample of field points
+samp <- sampleField(field = dat_sp, size = 0.05)
+
+# make raster
+ras <- rasterField(field = dat_sp, 
+                       trait = c("Yield", "TPI1", "SeedingDensity"), 
+                       res=20)
+
+par(mfrow=c(2,3))
+plot(ras$Yield)
+plot(ras$Yield,col = brewer.pal(9, "BuGn"))
+plot(ras$TPI1,col = topo.colors(10))
+plot(ras$SeedingDensity,col = brewer.pal(11, "RdYlGn"))
+par(mfrow=c(1,1))
+
+bounds <- boundaryField(field = ras$Yield)
+
+buffer <- bufferField(shape=bounds, value = -10)
+
+par(mfrow=c(1,2))
+hist(dat_sf_utm$Yield, breaks=6)
+hist(dat_sf_utm$SeedingDensity, breaks=6)
+par(mfrow=c(1,1))
+
+
+
+
 # Generate 10m raster for interpolations
-bbox <- c("xmin"=min(dat$x_u), "ymin"=min(dat$y_u),"xmax"=max(dat$x_u), "ymax"=max(dat$y_u))
+bbox <- c("xmin"=min(dat_sf_utm$x_u), "ymin"=min(dat_sf_utm$y_u),"xmax"=max(dat_sf_utm$x_u), "ymax"=max(dat_sf_utm$y_u))
 grd.temp <- expand.grid(
   X = seq(from = bbox["xmin"], to = bbox["xmax"], by = 20),
   Y = seq(from = bbox["ymin"], to = bbox["ymax"], by = 20) # 20 m resolution
