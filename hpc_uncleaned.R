@@ -19,6 +19,38 @@ data_ls <- data_ls %>% discard(is.null)
 
 data_ls <- lapply(data_ls, transform, Seeding_Variety=as.character(Seeding_Variety))
 
+# Uncleaned dataframe
 dat_df <- bind_rows(data_ls)
+#write.csv(dat_df, "uncleaned_yield.csv")
 
-write.csv(dat_df, "uncleaned_yield.csv")
+###################################################################
+
+# Clean the DF
+clean_fields <- function(x){
+  sd.y <- sd(x$Yield)*2.5
+  m.y <- mean(x$Yield)
+  out.up <- m.y+sd.y
+  out.down <- m.y-sd.y
+  dat_clean <- x[x$Yield > out.down & 
+                           x$Yield < out.up,]
+}
+
+dat_ls_clean <- lapply(data_ls, clean_fields)
+
+# Column class threw an error
+dat_ls_clean <- lapply(dat_ls_clean, transform, Application_3_ID=as.character(Application_3_ID))
+dat_ls_clean <- lapply(dat_ls_clean, transform, Application_4_ID=as.character(Application_4_ID))
+dat_ls_clean <- lapply(dat_ls_clean, transform, Application_5_ID=as.character(Application_5_ID))
+dat_ls_clean <- lapply(dat_ls_clean, transform, Application_6_ID=as.character(Application_6_ID))
+dat_ls_clean <- lapply(dat_ls_clean, transform, Application_7_ID=as.character(Application_7_ID))
+dat_ls_clean <- lapply(dat_ls_clean, transform, Application_8_ID=as.character(Application_8_ID))
+dat_ls_clean <- lapply(dat_ls_clean, transform, Application_9_ID=as.character(Application_9_ID))
+dat_ls_clean <- lapply(dat_ls_clean, transform, Application_10_ID=as.character(Application_10_ID))
+
+# Create clean DF
+dat_clean <- bind_rows(dat_ls_clean)
+write.csv(dat_clean, "clean_yield.csv")
+
+
+
+
