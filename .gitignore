@@ -12,6 +12,7 @@ yieldmodelv4/
 output/
 *.pdf
 *.html
+*.csv
 # Example code in package build process
 *-Ex.R
 
