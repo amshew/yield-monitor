@@ -4,7 +4,7 @@ library(dplyr)
 library(purrr)
 
 files_to_read <- list.files(
-  path = "yieldmodelv4/",        # directory to search within
+  path = "yieldmodelv4/", # directory to search within
   pattern = ".*.*csv", # regex pattern, some explanation below
   recursive = TRUE,   # search subdirectories
   full.names = TRUE
@@ -27,7 +27,7 @@ dat_df <- bind_rows(data_ls)
 
 # Clean the DF
 clean_fields <- function(x){
-  sd.y <- sd(x$Yield)*2.5
+  sd.y <- sd(x$Yield)*2 # 2 standard deviations; 95% confidence interval
   m.y <- mean(x$Yield)
   out.up <- m.y+sd.y
   out.down <- m.y-sd.y
