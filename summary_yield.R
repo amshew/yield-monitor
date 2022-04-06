@@ -1,4 +1,7 @@
 library(dplyr)
+library(ggplot2)
+library(ggridges)
+library(ggformula)
 
 # Summarize the dataset
 dat_clean <- read.csv("clean_yield_fields.csv")
@@ -34,14 +37,19 @@ crop_yield <- dat_clean %>%
                           n_fields = n_distinct(FieldID))
 
 write.csv(crop_yield, "output/crop_yields.csv")
+#################################################################################
 
 ## Summary of field - crop - year yield and inputs
 input_var <- dat_clean %>%
-  group_by(FieldId, CropName, Seeding_Variety, CropSeason) %>%
+  group_by(FieldID, CropName, Seeding_Variety, CropSeason) %>%
   summarise(mean_yield = mean(Yield, na.rm =T),
             min_yield = min(Yield, na.rm = T),
             max_yield = max(Yield, na.rm = T),
             sd_yield = sd(Yield, na.rm = T),
+            # across(.cols = Relative_Elevation1:Elevation1, .fns = mean, "{.col}_{.fn}"),
+            # across(.cols = Relative_Elevation1:Elevation1, .fns = sd, "{.col}_{.fn}"),
+            # across(.cols = Relative_Elevation1:Elevation1, .fns = min, "{.col}_{.fn}"),
+            # across(.cols = Relative_Elevation1:Elevation1, .fns = max, "{.col}_{.fn}"),
             mean_Seed = mean(SeedingDensity, na.rm=T),
             sd_Seed = sd(SeedingDensity, na.rm=T),
             mean_plant = mean(PlantingDay1, na.rm=T),
@@ -87,8 +95,68 @@ input_var <- dat_clean %>%
             mean_App10 = mean(Application_10_rate, na.rm=T),
             sd_App10 = sd(Application_10_rate, na.rm=T),
             ID_App10 = unique(Application_10_ID),
-            date_App10 = mean(Application_10_date, na.rm=T),
-            across(.cols=GDD1:Precipitation12, .fns = mean, .names = "{.col}_{.fn}"))
+            date_App10 = mean(Application_10_date, na.rm=T))
+            # across(.cols=GDD1:Precipitation12, .fns = mean, .names = "{.col}_{.fn}"))
+write.csv(input_var, "output/field-year-crop-inputs.csv")
+
+input_var <- input_var[input_var$mean_App1 >= 1,]
+
+ggplot(input_var, aes(mean_App1)) +
+  geom_histogram(binwidth = 10)
+
+
+#########################################################
+### Plot Yield by Planting Date
+
+# Summary Plots
+ggplot(input_var, aes(sd_App1)) +
+  geom_histogram(binwidth = 10) +
+  xlim(0,100) +
+  ylim(0, 150)
+
+# Yield by Planting Date
+ggplot(input_var, aes(x=mean_plant, y=mean_yield, color = factor(CropSeason))) +
+  geom_point() +
+  scale_color_viridis_d(option = "magma") +
+  geom_smooth() + 
+  ylim(0,300) +
+  facet_wrap(~ CropName)
+
+# Yield by SD of Application 1
+ggplot(input_var, aes(x=sd_App1, y=mean_yield, color = factor(CropSeason))) +
+  geom_point() +
+  scale_color_viridis_d(option = "magma") +
+  geom_smooth() + 
+  ylim(0,500) +
+  xlim(0,100)+
+  facet_wrap(~ CropName)
+
+# Yield by SD of Application 2
+ggplot(input_var, aes(x=sd_App2, y=mean_yield, color = factor(CropSeason))) +
+  geom_point() +
+  scale_color_viridis_d(option = "magma") +
+  geom_smooth() + 
+  ylim(0,500) +
+  xlim(0,100)+
+  facet_wrap(~ CropName)
+
+# Yield by SD of Application 3
+ggplot(input_var, aes(x=sd_App3, y=mean_yield, color = factor(CropSeason))) +
+  geom_point() +
+  scale_color_viridis_d(option = "magma") +
+  geom_smooth() + 
+  ylim(0,500) +
+  xlim(0,100)+
+  facet_wrap(~ CropName)
+
+
+
+### Corn
+corn <- dat_clean[dat_clean$CropName == "CORN_WET",]
+ggplot(dat_clean) +
+  geom_point(aes(x=PlantingDate1, y=Yield, color = CropName)) +
+  geom_spline() +
+  facet_grid(rows = vars(CropSeason))
 
 #########################################################
 ### Filter to fields with at least 2 years of data
