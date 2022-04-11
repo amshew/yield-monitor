@@ -46,10 +46,14 @@ input_var <- dat_clean %>%
             min_yield = min(Yield, na.rm = T),
             max_yield = max(Yield, na.rm = T),
             sd_yield = sd(Yield, na.rm = T),
-            # across(.cols = Relative_Elevation1:Elevation1, .fns = mean, "{.col}_{.fn}"),
-            # across(.cols = Relative_Elevation1:Elevation1, .fns = sd, "{.col}_{.fn}"),
-            # across(.cols = Relative_Elevation1:Elevation1, .fns = min, "{.col}_{.fn}"),
-            # across(.cols = Relative_Elevation1:Elevation1, .fns = max, "{.col}_{.fn}"),
+            mean_relative_elevation = mean(Relative_Elevation1, na.rm = T),
+            sd_relative_elevation = sd(Relative_Elevation1, na.rm = T),
+            mean_slope = mean(Slope1, na.rm = T),
+            sd_slope = sd(Slope1, na.rm = T),
+            mean_tri = mean(TRI1, na.rm = T),
+            sd_tri = sd(TRI1, na.rm = T),
+            mean_tpi = mean(TPI1, na.rm = T),
+            sd_tpi = sd(TPI1, na.rm = T),
             mean_Seed = mean(SeedingDensity, na.rm=T),
             sd_Seed = sd(SeedingDensity, na.rm=T),
             mean_plant = mean(PlantingDay1, na.rm=T),
@@ -96,23 +100,86 @@ input_var <- dat_clean %>%
             sd_App10 = sd(Application_10_rate, na.rm=T),
             ID_App10 = unique(Application_10_ID),
             date_App10 = mean(Application_10_date, na.rm=T))
+            #mean_GDD1 = mean())
             # across(.cols=GDD1:Precipitation12, .fns = mean, .names = "{.col}_{.fn}"))
 write.csv(input_var, "output/field-year-crop-inputs.csv")
 
-input_var <- input_var[input_var$mean_App1 >= 1,]
-
-ggplot(input_var, aes(mean_App1)) +
-  geom_histogram(binwidth = 10)
-
-
 #########################################################
-### Plot Yield by Planting Date
-
 # Summary Plots
+
+### Application SD Histograms
+# App 1 Histogram
 ggplot(input_var, aes(sd_App1)) +
   geom_histogram(binwidth = 10) +
   xlim(0,100) +
-  ylim(0, 150)
+  ylim(0, 150) +
+  ggtitle("SD of Application 1")
+
+# App 2 Histogram
+ggplot(input_var, aes(sd_App2)) +
+  geom_histogram(binwidth = 10) +
+  xlim(0,100) +
+  ylim(0, 250)+
+  ggtitle("SD of Application 2")
+
+
+# App 3 Histogram
+ggplot(input_var, aes(sd_App3)) +
+  geom_histogram(binwidth = 10) +
+  xlim(0,100) +
+  ylim(0, 250)+
+  ggtitle("SD of Application 3")
+
+# App 4 Histogram
+ggplot(input_var, aes(sd_App4)) +
+  geom_histogram(binwidth = 10) +
+  xlim(0,100) +
+  ylim(0, 250)+
+  ggtitle("SD of Application 4")
+
+# App 5 Histogram
+ggplot(input_var, aes(sd_App5)) +
+  geom_histogram(binwidth = 10) +
+  xlim(0,100) +
+  ylim(0, 250)+
+  ggtitle("SD of Application 5")
+
+# App 6 Histogram
+ggplot(input_var, aes(sd_App6)) +
+  geom_histogram(binwidth = 10) +
+  xlim(0,100) +
+  ylim(0, 250)+
+  ggtitle("SD of Application 6")
+
+# App 7 Histogram
+ggplot(input_var, aes(sd_App7)) +
+  geom_histogram(binwidth = 10) +
+  xlim(0,100) +
+  ylim(0, 250)+
+  ggtitle("SD of Application 7")
+
+# App 8 Histogram
+ggplot(input_var, aes(sd_App8)) +
+  geom_histogram(binwidth = 10) +
+  xlim(0,100) +
+  ylim(0, 250)+
+  ggtitle("SD of Application 8")
+
+# App 9 Histogram
+ggplot(input_var, aes(sd_App9)) +
+  geom_histogram(binwidth = 10) +
+  xlim(0,100) +
+  ylim(0, 250)+
+  ggtitle("SD of Application 9")
+
+# App 10 Histogram
+ggplot(input_var, aes(sd_App10)) +
+  geom_histogram(binwidth = 10) +
+  xlim(0,100) +
+  ylim(0, 250)+
+  ggtitle("SD of Application 10")
+
+### Yields and Apps Plots
 
 # Yield by Planting Date
 ggplot(input_var, aes(x=mean_plant, y=mean_yield, color = factor(CropSeason))) +
@@ -120,10 +187,29 @@ ggplot(input_var, aes(x=mean_plant, y=mean_yield, color = factor(CropSeason))) +
   scale_color_viridis_d(option = "magma") +
   geom_smooth() + 
   ylim(0,300) +
-  facet_wrap(~ CropName)
+  facet_wrap(~ CropName)+
+  ggtitle("Mean Planting DOY by Mean Yield")
 
 # Yield by SD of Application 1
 ggplot(input_var, aes(x=sd_App1, y=mean_yield, color = factor(CropSeason))) +
+  geom_point() +
+  scale_color_viridis_d(option = "magma") +
+  geom_smooth() + 
+  ylim(0,500) +
+  xlim(0,100)+
+  facet_wrap(~ CropName)
+
+# SD Yield by SD of Application 1
+ggplot(input_var, aes(x=sd_App1, y=sd_yield, color = factor(CropSeason))) +
+  geom_point() +
+  scale_color_viridis_d(option = "magma") +
+  geom_smooth() + 
+  ylim(0,500) +
+  xlim(0,100)+
+  facet_wrap(~ CropName)
+
+# Mean by SD of Application 1
+ggplot(input_var, aes(x=sd_App1, y=mean_App1, color = factor(CropSeason))) +
   geom_point() +
   scale_color_viridis_d(option = "magma") +
   geom_smooth() + 

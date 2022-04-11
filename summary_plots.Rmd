@@ -1,0 +1,223 @@
+---
+title: "Data Summaries"
+author: "Aaron M. Shew"
+date: "4/11/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Field-Year-Crop Summaries
+
+The input data for this set of plots is from the summary_yield R script. The data primarily represent mean and standard deviation of field-crop-years for different variables. 
+
+```{r data, warning=FALSE, echo=FALSE, message=FALSE}
+library(dplyr)
+library(ggplot2)
+library(ggridges)
+library(ggformula)
+inputs <- read.csv("output/field-year-crop-inputs.csv")
+```
+
+### Histograms of SD of Applications 1-10
+
+```{r SD Applications, echo=FALSE, warning=FALSE}
+
+# App 1 Histogram
+ggplot(inputs, aes(sd_App1)) +
+  geom_histogram(binwidth = 10) +
+  xlim(0,100) +
+  ylim(0, 150) +
+  ggtitle("SD of Application 1")
+
+# App 2 Histogram
+ggplot(inputs, aes(sd_App2)) +
+  geom_histogram(binwidth = 10) +
+  xlim(0,100) +
+  ylim(0, 250)+
+  ggtitle("SD of Application 2")
+
+# App 3 Histogram
+ggplot(inputs, aes(sd_App3)) +
+  geom_histogram(binwidth = 10) +
+  xlim(0,100) +
+  ylim(0, 250)+
+  ggtitle("SD of Application 3")
+
+# App 4 Histogram
+ggplot(inputs, aes(sd_App4)) +
+  geom_histogram(binwidth = 10) +
+  xlim(0,100) +
+  ylim(0, 250)+
+  ggtitle("SD of Application 4")
+
+# App 5 Histogram
+ggplot(inputs, aes(sd_App5)) +
+  geom_histogram(binwidth = 10) +
+  xlim(0,100) +
+  ylim(0, 250)+
+  ggtitle("SD of Application 5")
+
+# App 6 Histogram
+ggplot(inputs, aes(sd_App6)) +
+  geom_histogram(binwidth = 10) +
+  xlim(0,100) +
+  ylim(0, 250)+
+  ggtitle("SD of Application 6")
+
+# App 7 Histogram
+ggplot(inputs, aes(sd_App7)) +
+  geom_histogram(binwidth = 10) +
+  xlim(0,100) +
+  ylim(0, 250)+
+  ggtitle("SD of Application 7")
+
+# App 8 Histogram
+ggplot(inputs, aes(sd_App8)) +
+  geom_histogram(binwidth = 10) +
+  xlim(0,100) +
+  ylim(0, 250)+
+  ggtitle("SD of Application 8")
+
+# App 9 Histogram
+ggplot(inputs, aes(sd_App9)) +
+  geom_histogram(binwidth = 10) +
+  xlim(0,100) +
+  ylim(0, 250)+
+  ggtitle("SD of Application 9")
+
+# App 10 Histogram
+ggplot(inputs, aes(sd_App10)) +
+  geom_histogram(binwidth = 10) +
+  xlim(0,100) +
+  ylim(0, 250)+
+  ggtitle("SD of Application 10")
+```
+
+### Mean and SD of Yields
+
+Mean yields show a little bi-modality for corn, which may be due to irrigation.
+
+```{r echo=FALSE, warning=FALSE}
+# Mean Yield
+ggplot(inputs, aes(mean_yield)) +
+  geom_histogram(binwidth = 10) +
+  xlim(0,400) +
+  #ylim(0, 250)+
+  ggtitle("Mean Yield")+
+  facet_wrap(~ CropName)
+
+# SD Yield
+ggplot(inputs, aes(sd_yield)) +
+  geom_histogram(binwidth = 10) +
+  xlim(0,200) +
+  #ylim(0, 250)+
+  ggtitle("SD of Yield")+
+  facet_wrap(~ CropName)
+```
+
+### Yields vs Planting Date vs Applications
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+# Yield by Planting Date
+ggplot(inputs, aes(x=mean_plant, y=mean_yield, color = factor(CropSeason))) +
+  geom_point() +
+  scale_color_viridis_d(option = "magma") +
+  geom_smooth() + 
+  ylim(0,300) +
+  facet_wrap(~ CropName)+
+  ggtitle("Mean Planting DOY by Mean Yield")
+
+# Yield by SD of Application 1
+ggplot(inputs, aes(x=sd_App1, y=mean_yield, color = factor(CropSeason))) +
+  geom_point() +
+  scale_color_viridis_d(option = "magma") +
+  geom_smooth() + 
+  ylim(0,500) +
+  xlim(0,100)+
+  facet_wrap(~ CropName)+
+  ggtitle("Mean Yield by Mean Application 1")
+
+# SD Yield by SD of Application 1
+ggplot(inputs, aes(x=sd_App1, y=sd_yield, color = factor(CropSeason))) +
+  geom_point() +
+  scale_color_viridis_d(option = "magma") +
+  geom_smooth() + 
+  ylim(0,500) +
+  xlim(0,100)+
+  facet_wrap(~ CropName)+
+  ggtitle("SD Yield by SD Application 1")
+
+# Mean by SD of Application 1
+ggplot(inputs, aes(x=sd_App1, y=mean_App1, color = factor(CropSeason))) +
+  geom_point() +
+  scale_color_viridis_d(option = "magma") +
+  geom_smooth() + 
+  ylim(0,500) +
+  xlim(0,100)+
+  facet_wrap(~ CropName)+
+  ggtitle("SD Application 1 by Mean Application 1")
+
+# Yield by SD of Application 2
+ggplot(inputs, aes(x=sd_App2, y=mean_yield, color = factor(CropSeason))) +
+  geom_point() +
+  scale_color_viridis_d(option = "magma") +
+  geom_smooth() + 
+  ylim(0,500) +
+  xlim(0,100)+
+  facet_wrap(~ CropName)+
+  ggtitle("Mean Yield by SD Application 2")
+
+# Yield by SD of Application 2
+ggplot(inputs, aes(x=sd_App2, y=sd_yield, color = factor(CropSeason))) +
+  geom_point() +
+  scale_color_viridis_d(option = "magma") +
+  geom_smooth() + 
+  ylim(0,500) +
+  xlim(0,100)+
+  facet_wrap(~ CropName)+
+  ggtitle("SD Yield by SD Application 2")
+
+# Mean by SD of Application 2
+ggplot(inputs, aes(x=sd_App2, y=mean_App2, color = factor(CropSeason))) +
+  geom_point() +
+  scale_color_viridis_d(option = "magma") +
+  geom_smooth() + 
+  ylim(0,500) +
+  xlim(0,100)+
+  facet_wrap(~ CropName)+
+  ggtitle("Mean Application 2 by SD Application 2")
+
+# Mean by SD of Application 3
+ggplot(inputs, aes(x=sd_App3, y=mean_App3, color = factor(CropSeason))) +
+  geom_point() +
+  scale_color_viridis_d(option = "magma") +
+  geom_smooth() + 
+  ylim(0,500) +
+  xlim(0,100)+
+  facet_wrap(~ CropName)+
+  ggtitle("Mean Application 3 by SD Application 3")
+
+# Mean Yield by SD of Application 3
+ggplot(inputs, aes(x=sd_App3, y=mean_yield, color = factor(CropSeason))) +
+  geom_point() +
+  scale_color_viridis_d(option = "magma") +
+  geom_smooth() + 
+  ylim(0,500) +
+  xlim(0,100)+
+  facet_wrap(~ CropName)+
+  ggtitle("Mean Yield by SD Application 3")
+
+# SD Yield by SD of Application 3
+ggplot(inputs, aes(x=sd_App3, y=sd_yield, color = factor(CropSeason))) +
+  geom_point() +
+  scale_color_viridis_d(option = "magma") +
+  geom_smooth() + 
+  ylim(0,500) +
+  xlim(0,100)+
+  facet_wrap(~ CropName)+
+  ggtitle("SD Yield by SD Application 3")
+```
+
